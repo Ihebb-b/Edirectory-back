@@ -1,3 +1,4 @@
+const { get } = require("https");
 const Recipe = require("../models/recipeModel");
 
 // Route to Add a Recipe
@@ -48,10 +49,95 @@ const addRecipe = async (req, res) => {
     }
 };
 
+const modifyRecipe = async (req, res) => {
+    try {
+        const { id } = req.params; // Recipe ID from request parameters
+        const { name, ingredients, instructions } = req.body; // Updated data from request body
+        const newImageFile = req.file; // New image if uploaded
+
+        // Validate required fields
+        if (!name || !ingredients || !instructions) {
+            return res.status(400).json({ message: 'All fields are required.' });
+        }
+
+        let parsedIngredients, parsedInstructions;
+        try {
+            parsedIngredients = typeof ingredients === 'string' ? JSON.parse(ingredients) : ingredients;
+            parsedInstructions = typeof instructions === 'string' ? JSON.parse(instructions) : instructions;
+        } catch (error) {
+            return res.status(400).json({ message: 'Invalid ingredients or instructions format.' });
+        }
+
+        const existingRecipe = await Recipe.findById(id);
+        if (!existingRecipe) {
+            return res.status(404).json({ message: 'Recipe not found.' });
+        }
+
+        // Determine the image to use
+        const imageToUse = newImageFile
+            ? `/uploads/${newImageFile.filename}` // Use new uploaded image
+            : existingRecipe.image; // Retain existing image if no new image is uploaded
+
+        // Update the recipe
+        const updatedRecipe = await Recipe.findByIdAndUpdate(
+            id,
+            {
+                name,
+                image: imageToUse,
+                ingredients: parsedIngredients,
+                instructions: parsedInstructions,
+            },
+            { new: true, runValidators: true } // Return the updated document and run validators
+        );
+
+        if (!updatedRecipe) {
+            return res.status(404).json({ error: "Recipe not found" });
+        }
+
+        res.status(200).json({ message: 'Recipe updated successfully.', recipe: updatedRecipe });
+    } catch (error) {
+        console.error("Error in modifyRecipe:", error.message);
+        res.status(500).json({ message: 'An error occurred while updating the recipe.', error: error.message });
+    }
+};
+
+const deleteRecipe = async (req, res) => {
+    const { id } = req.params; // Get the menu ID from the request parameters
+  
+    // Find the menu by ID and delete it
+    const deleteRecipe = await Recipe.findByIdAndDelete(id);
+  
+    if (!deleteRecipe) {
+        return res.status(404).json({ error: "Recipe not found" });
+    }
+  
+    // Return a success message
+    res.status(200).json({ message: "Menu recipe successfully" });
+  } 
+
+  const getRecipeById = async (req, res) => {
+    const recipeId = req.params.id; // Get the menu ID from the request parameters
+  
+    // Find the menu by ID
+    const recipe = await Recipe.findById(recipeId);
+  
+    if (!recipe) {
+      return res.status(404).json({ error: "Menu not found" });
+    }
+  
+    // Return the found menu
+    res.status(200).json(recipe);
+  };
+
+
+
   
 
 module.exports = 
 {   addRecipe,
     getRecipes,
     getRecipeList,
+    modifyRecipe,
+    deleteRecipe,
+    getRecipeById,
   };

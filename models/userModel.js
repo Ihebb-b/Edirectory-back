@@ -39,6 +39,11 @@ const userSchema = new Schema({
     type: String,
     enum: ["Vegetarian", "Vegan", "Dairy-free", "Flexterian","No-restriction"],
   },
+
+  image: { 
+    type: String, 
+    },
+
   isAdmin: {
     type: Boolean,
     required: true,

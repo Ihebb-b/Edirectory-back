@@ -3,11 +3,13 @@ const Menu = require('../models/menuModel');
 const createMenu = async (req, res) => {
   try {
     if (!req.user) {
-      return res.status(401).send("User not authenticated");
+      return res.status(401).json({ message: 'User not authenticated.' });
     }
 
     const { name, description, plates } = req.body;
-    if (!req.file) return res.status(400).send('Image is required');
+
+
+    if (!req.file) return res.status(400).json({ message: 'Image is required.' });
 
 
     // Validate request data
@@ -145,17 +147,52 @@ const getMenuByUserId = async (req, res) => {
 };
 
 const modifyMenu = async (req, res) => {
+
+  try{
   const { id } = req.params; // Get the menu ID from the request parameters
   const { name, description, image, plates } = req.body; // Get the updated data from the request body
+  const newImageFile = req.file; // New image from uploaded file (if provided)
 
   // Find the menu by ID and update it
+
+  if (!name || !description || !plates || plates.length === 0) {
+    return res.status(400).json({ message: 'All fields are required.' });
+  }
+
+  let parsedPlates;
+  try {
+    parsedPlates = typeof plates === 'string' ? JSON.parse(plates) : plates;
+  } catch (error) {
+    return res.status(400).json({ message: 'Invalid plates format.' });
+  }
+
+  // if (!Array.isArray(parsedPlates) || parsedPlates.length === 0) {
+  //   return res.status(400).json({ message: 'Plates must include at least one plate.' });
+  // }    if (newImageFile) {
+  //     // A new image is uploaded
+  //     imageToUse = `/uploads/${newImageFile.filename}`;
+  //   } else if (existingImage) {
+  //     // Retain the existing image
+  //     imageToUse = existingImage;
+  //   } else {
+  //     return res.status(400).json({ message: 'An image must be provided.' });
+  //   }
+
+    const existingMenu = await Menu.findById(id);
+    if (!existingMenu) {
+        return res.status(404).json({ message: 'Menu not found.' });
+    }
+
+    const imageToUse = newImageFile
+    ? `/uploads/${newImageFile.filename}` // Use new uploaded image
+    : existingMenu.image; // Retain existing image if no new image is uploaded
   
   const updatedMenu = await Menu.findByIdAndUpdate(
       id,
       { name, 
         description, 
-        image, 
-        plates}, // Update the user field with the logged-in user's ID
+        image : imageToUse, 
+        plates: parsedPlates}, // Update the user field with the logged-in user's ID
       { new: true, runValidators: true } // Return the updated document and run validators
   );
 
@@ -164,7 +201,12 @@ const modifyMenu = async (req, res) => {
   }
 
   // Return the updated menu
-  res.status(200).json(updatedMenu);
+  res.status(200).json({ message: 'Menu updated successfully.', menu: updatedMenu });
+} catch (error)  {
+    console.error(error);
+    res.status(500).json({ message: 'An error occurred while updating the menu.', error: error.message });
+  
+  }
 };
 
 const deleteMenu = async (req, res) => {
@@ -179,7 +221,7 @@ const deleteMenu = async (req, res) => {
 
   // Return a success message
   res.status(200).json({ message: "Menu deleted successfully" });
-};
+} 
 
 
 module.exports =

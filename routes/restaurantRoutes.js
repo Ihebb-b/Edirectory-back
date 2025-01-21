@@ -26,8 +26,10 @@ router.get('/getAllmenusPagi', getAllMenusPagi);
 router.get('/menuIndiv', protect, menuList);
 router.get('/getMenu/:id', getMenuById);
 router.get('/getMenuByUserId/:userId', getMenuByUserId);
-router.put('/modifyMenu/:id', protect, modifyMenu);
+router.put('/modifyMenu/:id', protect, upload.single('image'), modifyMenu);
 router.delete('/deleteMenu/:id', protect, deleteMenu);
+
+
 
 
 
