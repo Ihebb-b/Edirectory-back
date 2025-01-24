@@ -101,7 +101,7 @@ const getAllMenusPagi = async (req, res) => {
 
     // Fetch restaurants with pagination
     const menus = await Menu.find({})
-      .select("name description")
+      .select("name description image")
       .skip(startIndex)
       .limit(parseInt(limit));
 

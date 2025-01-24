@@ -33,15 +33,15 @@ const restaurantSignup = async (req, role, res) => {
         message: `Email is already registered.`,
       });
     }
-// Hash password using bcrypt
+    // Hash password using bcrypt
     const password = await bcrypt.hash(req.password, 12);
     // create a new user
-    const newRestaurant = new User ({
+    const newRestaurant = new User({
       ...req,
       password,
       role
     });
-    await newRestaurant .save();
+    await newRestaurant.save();
     return res.status(201).json({
       message: "Hurry! now you are successfully registred. Please nor login."
     });
@@ -113,7 +113,7 @@ const authUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
   const user = await User.findOne({ email });
-  
+
 
   if (user && (await user.matchPassword(password))) {
     console.log('Correct response object:', res.cookie);
@@ -123,11 +123,13 @@ const authUser = asyncHandler(async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
+      diet: user.diet,
       description: user.description,
       localisation: user.localisation,
-     // token: generateToken(user._id),
+      image: user.image //? `/uploads/${user.image}` : null, // Ensure the image URL is complete
+      // token: generateToken(user._id),
     });
-    
+
   } else {
     res.status(401);
     throw new Error("Invalid email or password");
@@ -152,6 +154,7 @@ const register = asyncHandler(async (req, res) => {
     name,
     email,
     password,
+
   });
 
   if (user) {
@@ -160,6 +163,11 @@ const register = asyncHandler(async (req, res) => {
       _id: user._id,
       name: user.name,
       email: user.email,
+      role: user.role,
+      diet: user.diet,
+      description: user.description,
+      localisation: user.localisation,
+      image: user.image // ? `/uploads/${user.image}` : null, // Ensure the image URL is complete
       //token: generateToken(user._id),
     });
   } else {
@@ -168,31 +176,46 @@ const register = asyncHandler(async (req, res) => {
   }
 });
 
-const updateProfile= asyncHandler(async (req, res) => {
+const updateProfile = asyncHandler(async (req, res) => {
   const { role, localisation, averageBill, diet, description } = req.body;
+
 
   const user = await User.findById(req.user._id);
   if (user) {
     user.role = role || user.role;
     user.localisation = localisation || user.localisation;
     user.averageBill = averageBill || user.averageBill;
-    user.diet = diet || user.diet; 
+    user.diet = diet || user.diet;
     user.description = description || user.description;
 
-    const updatedUser = await user.save();
-    res.json({
-      _id: updatedUser._id,
-      name: updatedUser.name,
-      email: updatedUser.email,
-      role: updatedUser.role,
-      localisation: updatedUser.localisation,
-      averageBill: updatedUser.averageBill,
-      diet: updatedUser.diet,
-      description: updatedUser.description,
-    });
-  } else {
-    res.status(404);
-    throw new Error("User not found");
+    if (req.file) {
+      console.log("Uploaded file:", req.file);
+      user.image = `/uploads/${req.file.filename}`;
+    } else {
+      console.warn("No file uploaded, keeping the old image.");
+
+    }
+
+
+    try {
+      const updatedUser = await user.save();
+      console.log("Updated user:", updatedUser);
+      res.json({
+        _id: updatedUser._id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        role: updatedUser.role,
+        localisation: updatedUser.localisation,
+        averageBill: updatedUser.averageBill,
+        diet: updatedUser.diet,
+        description: updatedUser.description,
+        image: updatedUser.image,
+      });
+    } catch (error) {
+      console.error("Error saving user:", error);
+      res.status(500);
+      throw new Error("User update failed.");
+    }
   }
 });
 
@@ -254,14 +277,12 @@ const getTotalRestaurants = asyncHandler(async (req, res) => {
 
 const getAllRestaurants = async (req, res) => {
   try {
-    const restaurants = await User.find({role:"restaurant"}).select('name localisation averageBill description');
+    const restaurants = await User.find({ role: "restaurant" }).select('name localisation averageBill description image diet');
     res.status(200).json(restaurants);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
-
-
 
 const getAllRestaurantsPagi = async (req, res) => {
   try {
@@ -272,7 +293,7 @@ const getAllRestaurantsPagi = async (req, res) => {
 
     // Fetch restaurants with pagination
     const restaurants = await User.find({ role: "restaurant" })
-      .select("name localisation averageBill description")
+      .select("name localisation averageBill description image diet")
       .skip(startIndex)
       .limit(parseInt(limit));
 
@@ -296,40 +317,74 @@ const getMenuByUser = async (req, res) => {
   const menus = await Menu.find({ user: userId });
 
   if (menus.length === 0) {
-      return res.status(404).json({ message: 'No menus found for this user.' });
+    return res.status(404).json({ message: 'No menus found for this user.' });
   }
 
   // Return the found menus
   res.status(200).json(menus);
 };
 
-const getRestaurantById = asyncHandler(async (req, res) => {
-  const restaurantId = req.params.id; // Get the restaurant ID from the request parameters
+const getRestaurantById = async (req, res) => {
+  try {
+    const restaurantId = req.params.id; // Get the restaurant ID from the request parameters
 
-  // Find the user by ID with the role of 'restaurant'
-  const restaurant = await User.findOne({ _id: restaurantId, role: 'restaurant' })
-  .select('name localisation averageBill description');
+    // Find the restaurant by ID with the role of 'restaurant'
+    const restaurant = await User.findOne({ _id: restaurantId, role: 'restaurant' })
+      .select('name localisation averageBill description image diet');
 
-  if (!restaurant) {
+    if (!restaurant) {
       return res.status(404).json({ error: "Restaurant not found or not authorized" });
+    }
+
+    // Return the found restaurant
+    res.status(200).json(restaurant);
+  } catch (error) {
+    // Handle errors and return a server error response
+    res.status(500).json({ error: "Internal server error", details: error.message });
   }
+};
 
-  // Return the found restaurant
-  res.status(200).json(restaurant);
-});
+const searchRestaurants = async (req, res) => {
+  try {
+    const { localisation, diet, minBill, maxBill } = req.query;
 
+    // Build dynamic query
+    const query = { role: "restaurant" }; // Filter by role 'restaurants'
 
+    if (localisation) query.localisation = localisation.trim(); // Ensure no extra spaces
+    if (diet && diet.trim()) {
+      const dietArray = diet.split(",").map((d) => d.trim()); // Parse diet string into an array
+      query.diet = { $in: dietArray };
+    }
+    if (minBill || maxBill) {
+      query.averageBill = {};
+      if (minBill) query.averageBill.$gte = Number(minBill);
+      if (maxBill) query.averageBill.$lte = Number(maxBill);
+    }
 
+    // Fetch users with role 'restaurants'
+    const users = await User.find(query);
 
-
-
+    res.status(200).json({
+      success: true,
+      count: users.length,
+      data: users,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Server Error",
+    });
+  }
+};
 
 // @desc  Get  user profile
 // route  GET /api/users/profile
 // @access Private
 const getUserProfile = async (req, res) => {
   const user = {
-   
+
     name: req.user.name,
     email: req.user.email,
     role: req.user.role,
@@ -341,6 +396,108 @@ const getUserProfile = async (req, res) => {
 
   res.status(200).json({ user });
 };
+
+// const getFilteredRestaurants = async (req, res) => {
+//   try {
+//     const { location, priceRange, diet, page = 1, limit = 5 } = req.query;
+
+//     // Build the query object dynamically based on the filters
+//     const query = { role: "restaurant" };
+
+//     // Filter by location
+//     if (location) {
+//       query.localisation = location;
+//     }
+
+//     // Filter by price range
+//     if (priceRange) {
+//       const priceBounds = {
+//         budget: { $lte: 20 },
+//         midrange: { $gte: 20, $lte: 50 },
+//         highend: { $gte: 50 },
+//       };
+//       query.averageBill = priceBounds[priceRange.toLowerCase()];
+//     }
+
+//     // Filter by dietary preferences
+//     if (diet) {
+//       query.diet = { $in: diet.split(",") }; // Supports multiple diets as comma-separated values
+//     }
+
+//     // Pagination
+//     const startIndex = (page - 1) * limit;
+
+//     // Fetch filtered restaurants with pagination
+//     const restaurants = await User.find(query)
+//       .select("name localisation averageBill description image diet")
+//       .skip(startIndex)
+//       .limit(parseInt(limit));
+
+//     // Count total filtered restaurants for pagination metadata
+//     const totalRestaurants = await User.countDocuments(query);
+
+//     res.status(200).json({
+//       restaurants,
+//       totalPages: Math.ceil(totalRestaurants / limit),
+//       currentPage: parseInt(page),
+//     });
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+//   }
+// };
+
+const getFilteredRestaurants = async (req, res) => {
+  try {
+    const { location, priceRange, diet, page = 1, limit = 5 } = req.query;
+
+    // Build the query object dynamically based on the filters
+    const query = { role: "restaurant" };
+
+    // Filter by location
+    if (location) {
+      query.localisation = location;
+    }
+
+    // Filter by price range
+    if (priceRange) {
+      const priceBounds = {
+        budget: { $lte: 20 },
+        midrange: { $gte: 20, $lte: 50 },
+        highend: { $gte: 50 },
+      };
+      query.averageBill = priceBounds[priceRange.toLowerCase()];
+    }
+
+    // Filter by dietary preferences
+    if (diet) {
+      // Convert diet to an array and make it case-insensitive
+      const dietArray = Array.isArray(diet) ? diet : diet.split(",");
+      query.diet = { $in: dietArray.map((d) => new RegExp(d, "i")) };
+    }
+
+    // Pagination
+    const startIndex = (page - 1) * limit;
+
+    // Fetch filtered restaurants with pagination
+    const restaurants = await User.find(query)
+      .select("name localisation averageBill description image diet")
+      .skip(startIndex)
+      .limit(parseInt(limit));
+
+    // Count total filtered restaurants for pagination metadata
+    const totalRestaurants = await User.countDocuments(query);
+
+    res.status(200).json({
+      restaurants,
+      totalPages: Math.ceil(totalRestaurants / limit),
+      currentPage: parseInt(page),
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
 
 
 // @desc  Update  user profile
@@ -380,8 +537,10 @@ module.exports = {
   restaurantSignup,
   updateProfile,
   getTotalRestaurants,
-  getAllRestaurants, 
+  getAllRestaurants,
   getAllRestaurantsPagi,
   getMenuByUser,
   getRestaurantById,
+  searchRestaurants,
+  getFilteredRestaurants,
 };

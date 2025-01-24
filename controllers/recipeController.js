@@ -129,6 +129,32 @@ const deleteRecipe = async (req, res) => {
     res.status(200).json(recipe);
   };
 
+  const getAllRecipePagi = async (req, res) => {
+    try {
+      const { page = 1, limit = 5 } = req.query; // Default to page 1 and 5 items per page
+  
+      // Calculate the start index
+      const startIndex = (page - 1) * limit;
+  
+      // Fetch restaurants with pagination
+      const recipes = await Recipe.find({})
+        .select("name ingredients image")
+        .skip(startIndex)
+        .limit(parseInt(limit));
+  
+      // Count total restaurants for pagination metadata
+      const totalRecipes= await Recipe.countDocuments({});
+  
+      res.status(200).json({
+        recipes,
+        totalPages: Math.ceil(totalRecipes / limit),
+        currentPage: parseInt(page),
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  };
+
 
 
   
@@ -140,4 +166,5 @@ module.exports =
     modifyRecipe,
     deleteRecipe,
     getRecipeById,
+    getAllRecipePagi,
   };

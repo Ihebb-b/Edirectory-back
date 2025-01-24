@@ -25,7 +25,7 @@ const userSchema = new Schema({
 
   localisation: {
     type: String, 
-    enum: ["Algeria", "Tunisia", "France", "Italy", "Spain", "Albania", "Herzegovina", "Croatia", "Cyprus", "Greece", "Lebanon", "Syria", "Morocco", "Egypt", "Libya",   ]
+    enum: ["Algeria", "Tunisia", "France", "Italy", "Spain", "Albania", "Herzegovina", "Croatia", "Cyprus", "Greece", "Lebanon", "Syria", "Morocco", "Egypt", "Libya", "Palestine"   ]
   },
   averageBill: {
     type: Number,
@@ -35,10 +35,15 @@ const userSchema = new Schema({
   description: {
     type: String,
   },
-  diet:{
+  diet:[{
     type: String,
-    enum: ["Vegetarian", "Vegan", "Dairy-free", "Flexterian","No-restriction"],
-  },
+    enum: [
+      "Vegetarian",
+       "Vegan", 
+       "Dairyfree", 
+       "Flexterian",
+       "Norestriction"],
+  }],
 
   image: { 
     type: String, 
