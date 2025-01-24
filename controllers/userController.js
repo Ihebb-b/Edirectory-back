@@ -498,6 +498,26 @@ const getFilteredRestaurants = async (req, res) => {
 };
 
 
+const getCountries = async (req, res) => {
+  try {
+    const countries = await User.distinct("localisation");
+    res.status(200).json(countries);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+const getDiet = async (req, res) => {
+  try {
+    const diets = await User.distinct("diet");
+    res.status(200).json(diets);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
+
 
 
 // @desc  Update  user profile
@@ -543,4 +563,6 @@ module.exports = {
   getRestaurantById,
   searchRestaurants,
   getFilteredRestaurants,
+  getCountries,
+  getDiet,
 };

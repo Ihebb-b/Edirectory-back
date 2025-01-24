@@ -18,6 +18,8 @@ const {
     getRestaurantById,
     searchRestaurants,
     getFilteredRestaurants,
+    getCountries,
+    getDiet,
   } = require('../controllers/userController');
   
 
@@ -35,6 +37,9 @@ router.route('/getProfile').get(protect, getUserProfile);
 router.get('/restaurant/:id', getRestaurantById);
 router.get('/search', searchRestaurants);
 router.get('/filtered', getFilteredRestaurants);
+router.get('/countries', getCountries);
+router.get('/diets', getDiet);
+
 
 
 
