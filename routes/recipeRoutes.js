@@ -8,7 +8,8 @@ const {
     modifyRecipe,
     deleteRecipe,
     getRecipeById,
-    getAllRecipePagi
+    getAllRecipePagi,
+    getRecipesByUserId
   } = require("../controllers/recipeController");
 const { protect } = require("../middelware/authMiddelware");
 const upload = require("../utils/multerConfig");
@@ -20,6 +21,7 @@ router.put('/modifyRecipe/:id', protect, upload.single('image'), modifyRecipe);
 router.delete('/deleteRecipe/:id', protect, deleteRecipe);
 router.get('/getRecipe/:id', getRecipeById);
 router.get('/getAllrecipePagi', getAllRecipePagi);
+router.get('/recipes/:id', getRecipesByUserId);
 
 
 

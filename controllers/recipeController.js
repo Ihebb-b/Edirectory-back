@@ -155,6 +155,23 @@ const deleteRecipe = async (req, res) => {
     }
   };
 
+  const getRecipesByUserId = async (req, res) => { 
+    try {
+        const { id: userId } = req.params; // Extract the user ID from the request parameters
+        const recipes = await Recipe.find({ user: userId }); // Find recipes by user ID
+
+        if (!recipes || recipes.length === 0) {
+            // If no recipes are found, send a 404 response
+            return res.status(404).send({ error: "No recipes found for this user" });
+        }
+
+        res.status(200).send(recipes); // Send the found recipes as a response
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({ error: error.message }); // Handle server errors
+    }
+};
+
 
 
   
@@ -167,4 +184,5 @@ module.exports =
     deleteRecipe,
     getRecipeById,
     getAllRecipePagi,
+    getRecipesByUserId
   };
